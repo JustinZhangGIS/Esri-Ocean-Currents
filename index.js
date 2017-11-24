@@ -94,7 +94,7 @@ function (
                     var point = points[i];
                     var id = point[0];
                     var lattitude = Math.floor(id / 360);
-                    if (lattitude < LATITUDE_BUFFER || lattitude > 180 - LATITUDE_BUFFER) { continue; }
+                    if (lattitude < LATITUDE_BUFFER || lattitude > 180 - LATITUDE_BUFFER) { continue; }//这行判断不重要
                     point.shift();
                     _hash[id] = point;
                 }
@@ -180,8 +180,8 @@ function (
                 Math.sin(a * Math.PI / 180),
                 -Math.cos(a * Math.PI / 180)
             );
-            v.normalize();
-            v.multiplyScalar(m);
+            v.normalize();//保持向量的方向相同，长度标准化单位1
+            v.multiplyScalar(m);//向量乘以某个数
             return {
                 x: e.x,
                 y: e.y,
@@ -236,7 +236,8 @@ function (
             // Store generalized line
             tracks.push(track);
         }
-
+        console.log(tracks);
+        console.log(JSON.stringify(tracks))
         // Create renderer
         switch (type) {
             case 'Arrows':

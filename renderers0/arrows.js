@@ -29,7 +29,8 @@ define([
     var THREE = window.THREE;
     var RADIUS = 6378137;
     var OFFSET = 5000;
-    var COLOR = 0x00ffff;
+    var SIZE = 100000;
+    var COLOR = 0xffffff;
     var REST = 75; //ms
 
     return declare([], {
@@ -40,7 +41,7 @@ define([
             this.max = 0;
             this.refresh = Date.now();
         },
-        setup: function (context) {//必须要有这个函数，初始运行的函数
+        setup: function (context) {
             // Create the THREE.js webgl renderer
             this.renderer = new THREE.WebGLRenderer({
                 context: context.gl
@@ -64,7 +65,7 @@ define([
             // Set starting geometries
             this._updateObjects();
         },
-        render: function (context) {//必须要有这个函数，不断的被请求
+        render: function (context) {
             // Make sure to reset the internal THREE.js state
             this.renderer.resetGLState();
 
@@ -85,77 +86,71 @@ define([
         },
         dispose: function (content) { },
         _createObjects: function () {
-            //
+            // 
             var scope = this;
 
-            scope.tracks.forEach(function (track) {
-                // Smooth and densify line
-                var curve = new THREE.SplineCurve(track.map(function (e) {
-                    return new THREE.Vector2(e.x, e.y);
-                }));
-                var smooth = curve.getSpacedPoints(curve.points.length * 2);
+            this.tracks.forEach(function (track) {
+                // Get the length of the longest track
+                scope.max = Math.max(scope.max, track.length);
 
-                // Convert vectors to Esri webgl cartesian
-                var smooth3d = smooth.map(function (e) {
+                // Create plane without geometry. Attach user data.
+                var mesh = new THREE.Mesh(undefined, new THREE.MeshPhongMaterial({
+                    color: COLOR
+                }));
+                mesh.userData.offset = Math.floor((Math.random() * (track.length - 1)));
+                mesh.userData.geometries = track.map(function (e) {
                     // Convert lat/long to radians
                     var lon = e.x * Math.PI / 180 - Math.PI;
                     var lat = e.y * Math.PI / 180 - Math.PI / 2;
 
-                    // Create vector to current
+                    // Get direction
+                    var azm = Math.atan2(e.dx, e.dy);
+                    if (azm < 0) { azm += 2 * Math.PI; }
+
+                    // Create vector to 
                     var q = new THREE.Vector3(RADIUS + OFFSET, 0, 0);
                     q.applyAxisAngle(new THREE.Vector3(0, 1, 0), lat);
                     q.applyAxisAngle(new THREE.Vector3(0, 0, 1), lon);
 
-                    // Return vector
-                    return new THREE.Vector3(q.x, q.y, q.z);
+                    // Create plane
+                    var s = SIZE / 2;
+
+                    // Add vectices
+                    var geometry = new THREE.Geometry();
+                    geometry.vertices.push(new THREE.Vector3(0, 0, 0));
+                    geometry.vertices.push(new THREE.Vector3(-s, s, 0));
+                    geometry.vertices.push(new THREE.Vector3(0, s, 0));
+                    geometry.vertices.push(new THREE.Vector3(s, 0, 0));
+                    geometry.vertices.push(new THREE.Vector3(0, -s, 0));
+                    geometry.vertices.push(new THREE.Vector3(-s, -s, 0));
+
+                    // Add faces
+                    geometry.faces.push(new THREE.Face3(2, 1, 0));
+                    geometry.faces.push(new THREE.Face3(3, 2, 0));
+                    geometry.faces.push(new THREE.Face3(4, 3, 0));
+                    geometry.faces.push(new THREE.Face3(5, 4, 0));
+
+                    geometry.computeFaceNormals();
+
+                    // Apply arrow orientation
+                    geometry.rotateZ(azm);
+
+                    // Apply image centering
+                    geometry.translate(SIZE, SIZE, 0);
+
+                    // Local rotation to compensate for Earth curvature
+                    geometry.rotateY(lat + Math.PI / 2);
+                    geometry.rotateZ(lon);
+
+                    // Apply world coordinate transformation
+                    geometry.translate(q.x, q.y, q.z);
+
+                    return geometry;
                 });
 
-                // Get the length of the longest track
-                scope.max = Math.max(scope.max, smooth3d.length);
-
-                // Create a random offset. Used to stagger animations.
-                var offset = Math.floor((Math.random() * (smooth3d.length - 1)));
-
-                //随机颜色
-                var random16=[]
-                for( var n=0;n<6;n++){
-                    random16.push((Math.round(Math.random()*16+1)).toString(16))
-                }
-                var randomcolor= random16.join("");
-                randomcolor='0x'+randomcolor;
-                randomcolor=parseInt(randomcolor,16);
-
-                for (var i = 0; i < smooth3d.length - 1; i++) {
-                    // Create line geometry
-                    var geometry = new THREE.Geometry();
-                    geometry.vertices = [
-                        smooth3d[i],
-                        smooth3d[i + 1]
-                    ];
-
-                    // Create line material
-
-                    var material = new THREE.LineBasicMaterial({
-
-                        color: COLOR,
-                        opacity: 0,
-                        //linewidth: 5,//Todo:不知道为什么线的宽度没起作用
-                        transparent: true
-                    });
-
-                    // Create line.
-                    var line = new THREE.Line(geometry, material);//绘制线，事先绘制好且不可见。
-                    line.visible = false;
-                    line.flag = i;
-                    line.offset = offset;
-
-                    // Add line
-                    scope.scene.add(line);//添加绘制好的线到this中
-                }
+                // Add plane to scene
+                scope.scene.add(mesh);
             });
-
-            // Clear tracks array
-            this.tracks = null;
         },
         _createLights: function () {
             // Create both a directional light, as well as an ambient light
@@ -199,41 +194,19 @@ define([
             // Loop for every shape
             var scope = this;
             this.scene.children.forEach(function (e) {
+                // Create a new offset index
+                var index = scope.index + e.userData.offset;
+                if (index > scope.max) {
+                    index -= scope.max;
+                }
+
                 // Ignore other shapes
-                if (e.type === 'Line') {
-                    // Create a new offset index
-                    var index = scope.index + e.offset;
-                    if (index > scope.max) {
-                        //console.log('index > scope.max:index='+index)
-                        index -= scope.max;
-                        //console.log('index -= scope.max:index='+index)
-                    }
-                    
-                    // Show or hide a line segment
-                    if (e.flag - index >= 0 && e.flag - index <= 10) {//控制每个尾巴的长度
-                        // Slowly fade in a new line. 
-                        var fade = 1;
-                        switch (index) {
-                            case 0:
-                                fade = 0.1
-                                break;
-                            case 1:
-                                fade = 0.2
-                                break;
-                            case 2:
-                                fade = 0.5
-                                break;
-                        }
-
-                        // Show the line segment.
-                        e.material.opacity = fade * (e.flag - index) / 10;//决定尾巴透明的长度
-                        e.visible = true;
-
-                        
-                    } else {
-                        // Hide the line segment.
+                if (e.type === 'Mesh') {
+                    if (index >= e.userData.geometries.length) {
                         e.visible = false;
-                        e.material.opacity = 0;
+                    } else {
+                        e.geometry = e.userData.geometries[index];
+                        e.visible = true;
                     }
                 }
             });

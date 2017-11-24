@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Add Graphics to a SceneView - 4.5</title>
+    <script type='text/javascript' src='js/three.min.js'></script>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+    <script>//这段要写在jsAPi加载之前
+        {
+            packages: [{
+                name: 'app',
+                location: document.location.pathname + '/..'
+            }]
+        }
+    </script>
+
+    <script src="https://js.arcgis.com/4.5/"></script>
+
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+    <script>
+        require([
+                    "esri/Map",
+                    "esri/views/SceneView",
+                    "esri/layers/GraphicsLayer",
+                    "esri/Graphic",
+//                    'app/renderers/points',
+//                    'dojo/_base/xhr',
+                    "dojo/domReady!"
+                ],
+                function(
+                        Map, SceneView, GraphicsLayer, Graphic
+//                        ,points,xhr
+                ) {
+
+                    var map = new Map({
+                        basemap: "hybrid"
+                    });
+
+                    var view = new SceneView({
+                        container: "viewDiv",
+                        map: map,
+
+                        camera: { // autocasts as new Camera()
+                            position: { // autocasts as new Point()
+                                x: -0.17746710975334712,
+                                y: 51.44543992422466,
+                                z: 1266.7049653716385
+                            },
+                            heading: 0.34445102566290225,
+                            tilt: 82.95536300536367
+                        }
+                    });
+
+                    /*********************
+                     * Add graphics layer
+                     *********************/
+
+                    var graphicsLayer = new GraphicsLayer();
+                    map.add(graphicsLayer);
+
+                    /*************************
+                     * Add a 3D point graphic
+                     *************************/
+
+                    // London
+                    var point = {
+                        type: "point", // autocasts as new Point()
+                        x: -0.178,
+                        y: 51.48791,
+                        z: 1010
+                    };
+
+                    var markerSymbol = {
+                        type: "simple-marker", // autocasts as new SimpleMarkerSymbol()
+                        color: [226, 119, 40],
+                        outline: { // autocasts as new SimpleLineSymbol()
+                            color: [255, 255, 255],
+                            width: 2
+                        }
+                    };
+
+                    var pointGraphic = new Graphic({
+                        geometry: point,
+                        symbol: markerSymbol
+                    });
+                    graphicsLayer.add(pointGraphic);
+
+                    setInterval(function(){
+                        console.log(pointGraphic.geometry.z)
+
+                        graphicsLayer.remove(pointGraphic);//通过uid来判断是否为同一个对象
+
+                        point.z=point.z+1
+                        pointGraphic=new Graphic({
+                            geometry:point,
+                            symbol: markerSymbol
+                        })
+                        graphicsLayer.add(pointGraphic);
+
+                    },100)
+
+                });
+    </script>
+</head>
+
+<body>
+<div id="viewDiv"></div>
+</body>
+
+</html>

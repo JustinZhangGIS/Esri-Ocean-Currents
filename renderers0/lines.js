@@ -30,7 +30,7 @@ define([
     var RADIUS = 6378137;
     var OFFSET = 5000;
     var COLOR = 0x00ffff;
-    var REST = 75; //ms
+    var REST = 175; //ms
 
     return declare([], {
         constructor: function (view, tracks) {
@@ -137,20 +137,19 @@ define([
 
                     var material = new THREE.LineBasicMaterial({
 
-                        color: COLOR,
+                        color: randomcolor,
                         opacity: 0,
-                        //linewidth: 5,//Todo:不知道为什么线的宽度没起作用
                         transparent: true
                     });
 
                     // Create line.
-                    var line = new THREE.Line(geometry, material);//绘制线，事先绘制好且不可见。
+                    var line = new THREE.Line(geometry, material);
                     line.visible = false;
                     line.flag = i;
                     line.offset = offset;
 
                     // Add line
-                    scope.scene.add(line);//添加绘制好的线到this中
+                    scope.scene.add(line);
                 }
             });
 
@@ -204,13 +203,11 @@ define([
                     // Create a new offset index
                     var index = scope.index + e.offset;
                     if (index > scope.max) {
-                        //console.log('index > scope.max:index='+index)
                         index -= scope.max;
-                        //console.log('index -= scope.max:index='+index)
                     }
                     
                     // Show or hide a line segment
-                    if (e.flag - index >= 0 && e.flag - index <= 10) {//控制每个尾巴的长度
+                    if (e.flag - index >= 0 && e.flag - index <= 10) {
                         // Slowly fade in a new line. 
                         var fade = 1;
                         switch (index) {
@@ -226,9 +223,8 @@ define([
                         }
 
                         // Show the line segment.
-                        e.material.opacity = fade * (e.flag - index) / 10;//决定尾巴透明的长度
+                        e.material.opacity = fade * (e.flag - index) / 10;
                         e.visible = true;
-
                         
                     } else {
                         // Hide the line segment.

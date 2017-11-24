@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>第三个ThreeJS的demo-加载OBJ模型</title>
+    <script type='text/javascript' src='js/three.min.js'></script>
+    <script type="text/javascript" src="js/OrbitControls.js"></script>
+    <script type="text/javascript" src="js/OBJLoader.js"></script>
+    <!--<script type="text/javascript" src="js/OBJMTLLoader.js"></script>-->
+    <script type="text/javascript" src="js/MTLLoader.js"></script>
+
+</head>
+<body>
+<script>
+    var scene=new THREE.Scene();
+
+    var geometry=new THREE.BoxGeometry(100,100,100);
+    var material=new THREE.MeshLambertMaterial({color:0xff0000});
+    var mesh=new THREE.Mesh(geometry,material);
+    scene.add(mesh);
+
+    var obj1=new THREE.OBJLoader();
+    obj1.load('3D/PropPlane1.obj',function(planeOBJ){
+        planeOBJ.scale.set(0.01,0.01,0.01);
+        planeOBJ.position.x=70;
+        planeOBJ.rotation.y=Math.PI/4
+        scene.add(planeOBJ);
+    })
+
+    var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.load( '3D/PropPlane1.mtl', function( materials ) {
+
+        materials.preload();
+
+        var objLoader = new THREE.OBJLoader();
+        objLoader.setMaterials( materials );
+        objLoader.load( '3D/PropPlane1.obj', function ( planeOBJ2 ) {
+
+            planeOBJ2.scale.set(0.01,0.01,0.01);
+            planeOBJ2.position.x=-20;
+            planeOBJ2.position.y=70;
+            scene.add(planeOBJ2);
+
+        });
+
+    });
+
+    var light=new THREE.PointLight(0xffffff);
+    light.position.set(500,400,200);
+    scene.add(light);
+
+    var envirLight=new THREE.AmbientLight(0x555555);
+    scene.add(envirLight);
+
+    var camera=new THREE.PerspectiveCamera(40,800/600,1,1000);
+    camera.position.set(200,200,200);
+    camera.lookAt(scene.position);
+
+    var renderer=new THREE.WebGLRenderer();
+    renderer.setSize(800,600);
+    document.body.appendChild(renderer.domElement);
+
+    function render(){
+        renderer.render(scene,camera);
+    }
+    render();
+    var controls = new THREE.OrbitControls(camera)
+    controls.addEventListener('change',render)
+
+    function animate(){
+        requestAnimationFrame(animate);
+        render()
+    }
+    animate();
+
+</script>
+</body>
+</html>
